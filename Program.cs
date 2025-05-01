@@ -17,6 +17,8 @@ namespace PPMGChronical
 
             builder.Services.AddScoped<FirebaseAuthService>();
             builder.Services.AddScoped<FirestoreService>();
+            
+            builder.Services.AddScoped<ChronicleService>();
 
             await builder.Build().RunAsync();
         }

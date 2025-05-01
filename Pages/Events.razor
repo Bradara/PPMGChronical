@@ -1,0 +1,114 @@
+﻿@page "/events"
+@using PPMGChronical.Models
+@inject Services.ChronicleService ChronicleService
+@inject NavigationManager NavigationManager
+
+<h1>School Chronicle Events</h1>
+
+<div class="row mb-4">
+    <div class="col">
+        <button class="btn btn-primary" @onclick="NavigateToAddEvent">Add New Event</button>
+    </div>
+    <div class="col">
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Search events..." @bind="searchTerm" />
+            <button class="btn btn-outline-secondary" @onclick="SearchEvents">Search</button>
+        </div>
+    </div>
+</div>
+
+@if (loading)
+{
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (events.Count == 0)
+{
+    <div class="alert alert-info">No events found. Add your first school event!</div>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+        @foreach (var evt in events)
+        {
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">@evt.Title</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">@evt.Date.ToString("MMMM d, yyyy")</h6>
+                        <div class="badge bg-secondary mb-2">@evt.Category</div>
+                        <p class="card-text">@(evt.Description.Length > 150 ? evt.Description.Substring(0, 150) + "..." : evt.Description)</p>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-sm btn-primary" @onclick="() => ViewEventDetails(evt.Id)">View Details</button>
+                        <button class="btn btn-sm btn-secondary" @onclick="() => EditEvent(evt.Id)">Edit</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteEvent(evt.Id)">Delete</button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<ChronicleEvent> events = new();
+    private List<ChronicleEvent> allEvents = new();
+    private bool loading = true;
+    private string searchTerm = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEvents();
+    }
+
+    private async Task LoadEvents()
+    {
+        loading = true;
+        allEvents = await ChronicleService.GetEventsAsync();
+        events = allEvents.OrderByDescending(e => e.Date).ToList();
+        loading = false;
+    }
+
+    private void NavigateToAddEvent()
+    {
+        NavigationManager.NavigateTo("/events/add");
+    }
+
+    private void ViewEventDetails(string id)
+    {
+        NavigationManager.NavigateTo($"/events/{id}");
+    }
+
+    private void EditEvent(string id)
+    {
+        NavigationManager.NavigateTo($"/events/edit/{id}");
+    }
+
+    private async Task DeleteEvent(string id)
+    {
+        if (await ChronicleService.DeleteEventAsync(id))
+        {
+            events.RemoveAll(e => e.Id == id);
+            allEvents.RemoveAll(e => e.Id == id);
+        }
+    }
+
+    private void SearchEvents()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            events = allEvents.OrderByDescending(e => e.Date).ToList();
+        }
+        else
+        {
+            events = allEvents
+                .Where(e => e.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                           e.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(e => e.Date)
+                .ToList();
+        }
+    }
+}

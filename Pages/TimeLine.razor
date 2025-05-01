@@ -1,0 +1,108 @@
+﻿@page "/timeline"
+@using PPMGChronical.Models
+@inject Services.ChronicleService ChronicleService
+
+<h1>School Timeline</h1>
+
+@if (loading)
+{
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="timeline-filter mb-4">
+        <div class="btn-group" role="group">
+            <button class="btn @(selectedDecade == null ? "btn-primary" : "btn-outline-primary")" 
+                    @onclick="() => FilterByDecade(null)">All</button>
+            @foreach (var decade in decades)
+            {
+                <button class="btn @(selectedDecade == decade ? "btn-primary" : "btn-outline-primary")" 
+                        @onclick="() => FilterByDecade(decade)">@decade's</button>
+            }
+        </div>
+    </div>
+
+    <div class="timeline">
+        @foreach (var year in timelineItems.Select(i => i.Date.Year).Distinct().OrderByDescending(y => y))
+        {
+            <div class="timeline-year">
+                <h2>@year</h2>
+                
+                @foreach (var item in timelineItems.Where(i => i.Date.Year == year).OrderByDescending(i => i.Date))
+                {
+                    <div class="timeline-item">
+                        <div class="timeline-date">
+                            @item.Date.ToString("MMM dd")
+                        </div>
+                        <div class="timeline-content">
+                            <h5>@item.Title</h5>
+                            <span class="badge bg-secondary">@item.Category</span>
+                            <p>@(item.Description.Length > 100 ? item.Description.Substring(0, 100) + "..." : item.Description)</p>
+                            <a href="/events/@item.Id">Read more</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+}
+
+@code {
+    private List<ChronicleEvent> allEvents = new();
+    private List<ChronicleEvent> timelineItems = new();
+    private bool loading = true;
+    private List<int> decades = new();
+    private int? selectedDecade = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTimelineData();
+    }
+
+    private async Task LoadTimelineData()
+    {
+        loading = true;
+        
+        // Get all events for the timeline
+        allEvents = await ChronicleService.GetEventsAsync();
+        timelineItems = allEvents.OrderByDescending(e => e.Date).ToList();
+        
+        // Calculate available decades
+        if (allEvents.Any())
+        {
+            int minYear = allEvents.Min(e => e.Date.Year);
+            int maxYear = allEvents.Max(e => e.Date.Year);
+            
+            for (int decade = (minYear / 10) * 10; decade <= (maxYear / 10) * 10; decade += 10)
+            {
+                decades.Add(decade);
+            }
+        }
+        
+        loading = false;
+    }
+
+    private void FilterByDecade(int? decade)
+    {
+        selectedDecade = decade;
+        
+        if (decade == null)
+        {
+            // Show all events
+            timelineItems = allEvents.OrderByDescending(e => e.Date).ToList();
+        }
+        else
+        {
+            // Filter by decade
+            timelineItems = allEvents
+                .Where(e => e.Date.Year >= decade && e.Date.Year < decade + 10)
+                .OrderByDescending(e => e.Date)
+                .ToList();
+        }
+    }
+}

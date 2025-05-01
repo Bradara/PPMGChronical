@@ -110,4 +110,47 @@
             return { success: false, error: error.message };
         }
     }
+
+     // Query methods
+    queryCollection: async function (collectionName, field, operator, value) {
+        try {
+            const snapshot = await firebase.firestore()
+                .collection(collectionName)
+                .where(field, operator, value)
+                .get();
+
+            const docs = snapshot.docs.map(doc => {
+                return {
+                    id: doc.id,
+                    ...doc.data()
+                };
+            });
+
+            return { success: true, data: JSON.stringify(docs) };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    queryCollectionOrdered: async function (collectionName, orderField, direction, limit) {
+        try {
+            let query = firebase.firestore().collection(collectionName).orderBy(orderField, direction);
+
+            if (limit) {
+                query = query.limit(limit);
+            }
+
+            const snapshot = await query.get();
+            const docs = snapshot.docs.map(doc => {
+                return {
+                    id: doc.id,
+                    ...doc.data()
+                };
+            });
+
+            return { success: true, data: JSON.stringify(docs) };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
 };

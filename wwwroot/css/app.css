@@ -75,3 +75,35 @@
 code {
     color: #c02d76;
 }
+
+.timeline {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.timeline-year {
+    margin-bottom: 40px;
+}
+
+    .timeline-year h2 {
+        padding-bottom: 10px;
+        border-bottom: 2px solid #007bff;
+        margin-bottom: 20px;
+    }
+
+.timeline-item {
+    position: relative;
+    background-color: #f8f9fa;
+    margin-bottom: 20px;
+    padding: 10px;
+}
+    .timeline-item h3 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .timeline-item p {
+        margin: 0;
+        font-size: 1rem;
+    }

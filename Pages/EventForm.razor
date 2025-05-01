@@ -1,0 +1,112 @@
+﻿@page "/events/add"
+@using PPMGChronical.Models
+@inject Services.ChronicleService ChronicleService
+@inject NavigationManager NavigationManager
+@inject Services.FirebaseAuthService AuthService
+
+<h1>Add New School Event</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <EditForm Model="@newEvent" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="title" class="form-label">Title</label>
+                <InputText id="title" class="form-control" @bind-Value="newEvent.Title" />
+                <ValidationMessage For="@(() => newEvent.Title)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="date" class="form-label">Date</label>
+                <InputDate id="date" class="form-control" @bind-Value="newEvent.Date" />
+                <ValidationMessage For="@(() => newEvent.Date)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="category" class="form-label">Category</label>
+                <InputSelect id="category" class="form-select" @bind-Value="newEvent.Category">
+                    <option value="">-- Select Category --</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Arts">Arts</option>
+                    <option value="Construction">Construction</option>
+                    <option value="Administration">Administration</option>
+                    <option value="Other">Other</option>
+                </InputSelect>
+                <ValidationMessage For="@(() => newEvent.Category)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <InputTextArea id="description" class="form-control" rows="5" @bind-Value="newEvent.Description" />
+                <ValidationMessage For="@(() => newEvent.Description)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="imageUrls" class="form-label">Image URLs (one per line)</label>
+                <InputTextArea id="imageUrls" class="form-control" rows="3" @bind-Value="imageUrlsText" />
+            </div>
+
+            <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                @if (isSubmitting)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span> Saving...</span>
+                }
+                else
+                {
+                    <span>Save Event</span>
+                }
+            </button>
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private ChronicleEvent newEvent = new ChronicleEvent { Date = DateTime.Today };
+    private string imageUrlsText = "";
+    private bool isSubmitting = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await AuthService.GetCurrentUserAsync();
+        if (user != null)
+        {
+            newEvent.CreatedBy = user.Email;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        isSubmitting = true;
+
+        // Process image URLs
+        if (!string.IsNullOrWhiteSpace(imageUrlsText))
+        {
+            newEvent.ImageUrls = imageUrlsText
+                .Split('\n')
+                .Select(url => url.Trim())
+                .Where(url => !string.IsNullOrWhiteSpace(url))
+                .ToList();
+        }
+
+        newEvent.CreatedAt = DateTime.UtcNow;
+
+        var eventId = await ChronicleService.AddEventAsync(newEvent);
+
+        if (!string.IsNullOrEmpty(eventId))
+        {
+            NavigationManager.NavigateTo("/events");
+        }
+
+        isSubmitting = false;
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/events");
+    }
+}
